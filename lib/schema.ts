@@ -2,25 +2,26 @@ import { z } from 'zod'
 
 export const warrantySchema = z.object({
   product: z.object({
-    type: z.enum(['VOLTA Black', 'VOLTA 24K Gold', 'Swappable Battery']),
-    colorway: z.string().nullable(),
+    type: z.string().min(1),
+    colorway: z.string().nullable().optional(),
     serialNumber: z.string().regex(/^[a-zA-Z0-9]{8,20}$/, 'Serial numbers are 8 to 20 characters, letters and numbers only.'),
   }),
   issue: z.object({
-    type: z.enum(['Won\'t power on', 'Display issue', 'Heating malfunction', 'Battery not charging', 'Battery not holding charge', 'App connection issue', 'Physical damage', 'Other']),
+    type: z.string().min(1, 'This field is required.'),
     description: z.string().min(50, 'Add a bit more detail. Minimum 50 characters.').max(1500, 'Description is too long. Maximum 1500 characters.'),
     attachments: z.array(z.object({
       filename: z.string(),
       mimeType: z.string(),
       sizeBytes: z.number(),
       data: z.string(),
-    })).min(1, 'At least one photo or video is required.').max(5, 'Maximum 5 files. Remove one to add another.'),
+    })).optional().default([]),
   }),
   purchase: z.object({
-    date: z.string(),
-    location: z.enum(['shishax.com', 'Authorized reseller', 'Other']),
-    resellerName: z.string().nullable(),
-    registered: z.enum(['yes', 'no', 'unsure']),
+    date: z.string().min(1),
+    location: z.string().min(1),
+    otherLocation: z.string().optional(),
+    resellerName: z.string().nullable().optional(),
+    registered: z.string().min(1),
   }),
   customer: z.object({
     firstName: z.string().min(1, 'This field is required.'),
@@ -36,11 +37,11 @@ export const warrantySchema = z.object({
     }),
   }),
   meta: z.object({
-    warrantyStatus: z.enum(['within', 'expired']),
+    warrantyStatus: z.string(),
     daysRemaining: z.number(),
     submittedAt: z.string(),
     userAgent: z.string(),
-  }),
+  }).optional(),
 })
 
 export type WarrantyClaim = z.infer<typeof warrantySchema>

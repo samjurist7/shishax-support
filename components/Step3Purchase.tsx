@@ -88,6 +88,20 @@ export default function Step3Purchase() {
         </div>
       )}
 
+      {purchaseLocation === 'Other' && (
+        <div className="anim-fade-up">
+          <label className="w-label">Where did you purchase? *</label>
+          <input
+            className={`w-input${purchaseErrors.otherLocation ? ' is-error' : ''}`}
+            placeholder="e.g. Amazon, local shop, gift, etc."
+            {...register('purchase.otherLocation', {
+              required: purchaseLocation === 'Other' ? 'Please tell us where you purchased.' : false,
+            })}
+          />
+          <FieldError message={purchaseErrors.otherLocation?.message} />
+        </div>
+      )}
+
       <div>
         <label className="w-label">Was the product registered with us? *</label>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 8 }}>

@@ -16,7 +16,7 @@ import { generateReferenceNumber } from '@/lib/schema'
 const STEP_FIELDS: string[][] = [
   ['product.type', 'product.serialNumber'],
   ['issue.type', 'issue.description', 'issue.attachments'],
-  ['purchase.date', 'purchase.location', 'purchase.registered'],
+  ['purchase.date', 'purchase.location', 'purchase.otherLocation', 'purchase.registered'],
   ['customer.firstName', 'customer.lastName', 'customer.email', 'customer.phone', 'customer.address.street', 'customer.address.city', 'customer.address.state', 'customer.address.postalCode', 'customer.address.country'],
   [],
 ]
@@ -38,6 +38,7 @@ const schema = z.object({
     date: z.string().min(1, 'This field is required.'),
     location: z.string().min(1, 'This field is required.'),
     resellerName: z.string().nullable().optional(),
+    otherLocation: z.string().optional(),
     registered: z.string().min(1, 'This field is required.'),
   }),
   customer: z.object({
@@ -69,7 +70,7 @@ export default function WarrantyPage() {
     defaultValues: {
       product: { type: '', colorway: null, serialNumber: '' },
       issue: { type: '', description: '', attachments: [] },
-      purchase: { date: '', location: '', resellerName: null, registered: '' },
+      purchase: { date: '', location: '', resellerName: null, otherLocation: '', registered: '' },
       customer: { firstName: '', lastName: '', email: '', phone: '', address: { street: '', city: '', state: '', postalCode: '', country: '' } },
     },
     mode: 'onBlur',
