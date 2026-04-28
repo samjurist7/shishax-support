@@ -1,193 +1,219 @@
 'use client'
 import { useState } from 'react'
-import { useForm, FormProvider } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import ProgressIndicator from '@/components/ProgressIndicator'
-import Step1Product from '@/components/Step1Product'
-import Step2Issue from '@/components/Step2Issue'
-import Step3Purchase from '@/components/Step3Purchase'
-import Step4Details from '@/components/Step4Details'
-import Step5Review from '@/components/Step5Review'
-import SuccessScreen from '@/components/SuccessScreen'
-import { generateReferenceNumber } from '@/lib/schema'
+import SiteNav from '@/components/SiteNav'
+import FieldError from '@/components/FieldError'
 
-const STEP_FIELDS: string[][] = [
-  ['product.type', 'product.serialNumber'],
-  ['issue.type', 'issue.description', 'issue.attachments'],
-  ['purchase.date', 'purchase.location', 'purchase.registered'],
-  ['customer.firstName', 'customer.lastName', 'customer.email', 'customer.phone', 'customer.address.street', 'customer.address.city', 'customer.address.state', 'customer.address.postalCode', 'customer.address.country'],
-  [],
-]
-
-const STEP_TITLES = ['PRODUCT', 'ISSUE', 'PURCHASE', 'YOUR DETAILS', 'REVIEW']
+const PRODUCTS = ['VOLTA Black', 'VOLTA 24K Gold', 'Swappable Battery'] as const
+const LOCATIONS = ['shishax.com', 'Authorized reseller', 'Other'] as const
 
 const schema = z.object({
-  product: z.object({
-    type: z.string().min(1, 'This field is required.'),
-    colorway: z.string().nullable().optional(),
-    serialNumber: z.string().regex(/^[a-zA-Z0-9]{8,20}$/, 'Serial numbers are 8 to 20 characters, letters and numbers only.'),
-  }),
-  issue: z.object({
-    type: z.string().min(1, 'This field is required.'),
-    description: z.string().min(50, 'Add a bit more detail. Minimum 50 characters.').max(1500, 'Description is too long. Maximum 1500 characters.'),
-    attachments: z.array(z.any()).optional().default([]),
-  }),
-  purchase: z.object({
-    date: z.string().min(1, 'This field is required.'),
-    location: z.string().min(1, 'This field is required.'),
-    resellerName: z.string().nullable().optional(),
-    registered: z.string().min(1, 'This field is required.'),
-  }),
-  customer: z.object({
-    firstName: z.string().min(1, 'This field is required.'),
-    lastName: z.string().min(1, 'This field is required.'),
-    email: z.string().email('Enter a valid email address.'),
-    phone: z.string().min(7, 'Enter a valid phone number with country code.'),
-    address: z.object({
-      street: z.string().min(1, 'This field is required.'),
-      city: z.string().min(1, 'This field is required.'),
-      state: z.string().min(1, 'This field is required.'),
-      postalCode: z.string().min(1, 'This field is required.'),
-      country: z.string().min(1, 'This field is required.'),
-    }),
-  }),
+  productType: z.string().refine(v => PRODUCTS.includes(v as typeof PRODUCTS[number]), { message: 'Please select a product.' }),
+  serialNumber: z.string().regex(/^[a-zA-Z0-9]{8,20}$/, 'Serial numbers are 8–20 characters, letters and numbers only.'),
+  purchaseDate: z.string().min(1, 'Purchase date is required.'),
+  purchaseLocation: z.string().refine(v => LOCATIONS.includes(v as typeof LOCATIONS[number]), { message: 'Please select where you purchased.' }),
+  resellerName: z.string().optional(),
+  firstName: z.string().min(1, 'First name is required.'),
+  lastName: z.string().min(1, 'Last name is required.'),
+  email: z.string().email('Enter a valid email address.'),
+  phone: z.string().min(7, 'Enter a valid phone number.').optional().or(z.literal('')),
 })
 
-export default function WarrantyPage() {
-  const [step, setStep] = useState(0)
-  const [ceramicReject, setCeramicReject] = useState(false)
-  const [submitted, setSubmitted] = useState(false)
-  const [submitError, setSubmitError] = useState(false)
-  const [refNumber, setRefNumber] = useState('')
-  const [submitting, setSubmitting] = useState(false)
-  const [confirmChecked, setConfirmChecked] = useState(false)
+type FormData = z.infer<typeof schema>
 
-  const methods = useForm({
+function SuccessScreen({ refNumber, email, product }: { refNumber: string; email: string; product: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => { navigator.clipboard.writeText(refNumber); setCopied(true); setTimeout(() => setCopied(false), 2000) }
+
+  return (
+    <div className="anim-fade-up" style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto', padding: '16px 0' }}>
+      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #FF8000, #F82629)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M7 16l6 6 12-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="anim-draw" />
+        </svg>
+      </div>
+      <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 28, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 12 }}>WARRANTY REGISTERED</h1>
+      <p style={{ color: '#888', fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
+        Your <span style={{ color: '#fff' }}>{product}</span> warranty is now active. A confirmation has been sent to <span style={{ color: '#fff' }}>{email}</span>.
+      </p>
+      <div style={{ background: '#111', border: '1px solid #2A2A2A', borderRadius: 12, padding: '24px 28px', marginBottom: 16 }}>
+        <p style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666', marginBottom: 10 }}>REGISTRATION NUMBER</p>
+        <p style={{ fontFamily: 'monospace', fontSize: 24, color: '#FF8000', letterSpacing: '0.1em', marginBottom: 6 }}>{refNumber}</p>
+        <p style={{ fontSize: 13, color: '#555', marginBottom: 18 }}>Save this number. You'll need it if you ever submit a warranty claim.</p>
+        <button onClick={copy} className="btn-primary" style={{ width: '100%' }}>{copied ? 'COPIED ✓' : 'COPY REGISTRATION NUMBER'}</button>
+      </div>
+      <a href="/claim" className="btn-secondary" style={{ display: 'block', width: '100%', textAlign: 'center', marginBottom: 12 }}>SUBMIT A CLAIM</a>
+      <a href="https://shishax.com" style={{ fontSize: 14, color: '#555', textDecoration: 'none' }}>← Back to ShishaX.com</a>
+    </div>
+  )
+}
+
+export default function RegisterPage() {
+  const [submitted, setSubmitted] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [refNumber, setRefNumber] = useState('')
+
+  const today = new Date().toISOString().split('T')[0]
+  const fiveYearsAgo = new Date(Date.now() - 5 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+
+  const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: {
-      product: { type: '', colorway: null, serialNumber: '' },
-      issue: { type: '', description: '', attachments: [] },
-      purchase: { date: '', location: '', resellerName: null, registered: '' },
-      customer: { firstName: '', lastName: '', email: '', phone: '', address: { street: '', city: '', state: '', postalCode: '', country: '' } },
-    },
     mode: 'onBlur',
   })
 
-  const { trigger, getValues } = methods
+  const productType = watch('productType')
+  const purchaseLocation = watch('purchaseLocation')
 
-  const handleContinue = async () => {
-    const fields = STEP_FIELDS[step] as any[]
-    const valid = fields.length === 0 ? true : await trigger(fields)
-    if (valid) setStep(s => Math.min(s + 1, 4))
-  }
-
-  const handleSubmit = async () => {
+  const onSubmit = async (data: FormData) => {
     setSubmitting(true)
-    setSubmitError(false)
+    setSubmitError('')
     try {
-      const data = getValues()
-      const months = data.product.type === 'Swappable Battery' ? 6 : 12
-      const expiry = new Date(data.purchase.date); expiry.setMonth(expiry.getMonth() + months)
-      const daysLeft = Math.ceil((expiry.getTime() - Date.now()) / 86400000)
-
-      const payload = { ...data, meta: { warrantyStatus: daysLeft > 0 ? 'within' : 'expired', daysRemaining: daysLeft, submittedAt: new Date().toISOString(), userAgent: navigator.userAgent } }
-
-      const res = await fetch('/api/warranty-claims', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+      const res = await fetch('/api/warranty-register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
       const json = await res.json()
-
       if (json.success) {
-        const ref = json.referenceNumber || generateReferenceNumber()
-        sessionStorage.setItem('shishax_warranty_ref', ref)
-        sessionStorage.setItem('shishax_warranty_email', data.customer.email)
-        setRefNumber(ref)
+        setRefNumber(json.referenceNumber)
         setSubmitted(true)
-      } else { setSubmitError(true) }
-    } catch { setSubmitError(true) }
+      } else {
+        setSubmitError(json.error?.message || 'Something went wrong. Please try again.')
+      }
+    } catch {
+      setSubmitError('Something went wrong. Please try again.')
+    }
     setSubmitting(false)
   }
 
-  // ── Success ──
   if (submitted) return (
     <main style={{ minHeight: '100vh', padding: '48px 20px' }}>
       <div style={{ maxWidth: 580, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <a href="https://shishax.com" style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 18, color: '#FF8000', letterSpacing: '0.1em', textDecoration: 'none' }}>SHISHAX</a>
-        </div>
-        <SuccessScreen referenceNumber={refNumber} email={methods.getValues('customer.email')} />
+        <SiteNav />
+        <SuccessScreen refNumber={refNumber} email={watch('email')} product={watch('productType')} />
       </div>
     </main>
   )
 
-  // ── Ceramic soft reject ──
-  if (ceramicReject) return (
-    <main style={{ minHeight: '100vh', padding: '48px 20px' }}>
-      <div style={{ maxWidth: 580, margin: '0 auto' }}>
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <a href="https://shishax.com" style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 18, color: '#FF8000', letterSpacing: '0.1em', textDecoration: 'none' }}>SHISHAX</a>
-        </div>
-        <div className="w-card anim-fade-up">
-          <h2 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 20, color: '#fff', marginBottom: 16, lineHeight: 1.4 }}>Ceramic chambers are not covered under warranty</h2>
-          <p style={{ color: '#888', fontSize: 15, lineHeight: 1.7, marginBottom: 28 }}>
-            Ceramic chambers are designed for repeated multi-session use, but they're a consumable accessory and don't carry warranty coverage. If you're experiencing a different issue or need help, contact us directly.
-          </p>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>
-            <a href="mailto:sales@shishax.com" className="btn-primary">Email sales@shishax.com</a>
-            <button onClick={() => { setCeramicReject(false); methods.setValue('product.type', '') }} className="btn-secondary">Back</button>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
-
-  // ── Main form ──
   return (
     <main style={{ minHeight: '100vh', padding: '48px 20px' }}>
       <div style={{ maxWidth: 580, margin: '0 auto' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
-          <a href="https://shishax.com" style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 18, color: '#FF8000', letterSpacing: '0.1em', textDecoration: 'none' }}>SHISHAX</a>
-          <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 'clamp(24px, 5vw, 36px)', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginTop: 12, marginBottom: 10 }}>WARRANTY CLAIM</h1>
-          <p style={{ color: '#666', fontSize: 15 }}>Submit a claim for your VOLTA in 5 steps. We review every submission within 2 business days.</p>
+        <SiteNav />
+
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
+          <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 'clamp(22px, 5vw, 34px)', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 10 }}>REGISTER YOUR WARRANTY</h1>
+          <p style={{ color: '#666', fontSize: 15 }}>Activate your product warranty. Takes less than 2 minutes.</p>
         </div>
 
-        {/* Progress */}
-        <ProgressIndicator current={step} onGoTo={setStep} />
-
-        {/* Card */}
         <div className="w-card">
-          <h2 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 20, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 28 }}>
-            {STEP_TITLES[step]}
-          </h2>
+          <form onSubmit={handleSubmit(onSubmit)} style={{ display: 'flex', flexDirection: 'column', gap: 24 }} noValidate>
 
-          <FormProvider {...methods}>
-            <form onSubmit={e => e.preventDefault()}>
-              {step === 0 && <Step1Product onCeramicReject={() => setCeramicReject(true)} />}
-              {step === 1 && <Step2Issue />}
-              {step === 2 && <Step3Purchase />}
-              {step === 3 && <Step4Details />}
-              {step === 4 && <Step5Review onGoTo={setStep} confirmChecked={confirmChecked} onConfirmChange={setConfirmChecked} />}
-            </form>
-          </FormProvider>
-        </div>
+            {/* Product */}
+            <div>
+              <label className="w-label">Product *</label>
+              <select className={`w-select${errors.productType ? ' is-error' : ''}`} {...register('productType')}>
+                <option value="">Select your product</option>
+                {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
+              </select>
+              <FieldError message={errors.productType?.message} />
+            </div>
 
-        {/* Submit error */}
-        {submitError && (
-          <div className="anim-fade-up" style={{ marginTop: 16, padding: '16px 20px', borderRadius: 10, background: 'rgba(248,38,41,0.06)', border: '1px solid rgba(248,38,41,0.2)' }}>
-            <p style={{ color: '#fff', fontWeight: 600, marginBottom: 4 }}>Something went wrong</p>
-            <p style={{ color: '#888', fontSize: 14 }}>We couldn't submit your claim. Please try again. If the problem continues, email <a href="mailto:sales@shishax.com" style={{ color: '#FF8000' }}>sales@shishax.com</a> directly.</p>
-          </div>
-        )}
+            {/* Serial number */}
+            <div>
+              <label className="w-label">Serial number *</label>
+              <input className={`w-input${errors.serialNumber ? ' is-error' : ''}`} placeholder="e.g. SHX12345678" {...register('serialNumber')} />
+              <FieldError message={errors.serialNumber?.message} />
+              <p className="w-helper">Found on the bottom of your device, on the battery module, or on the original packaging.</p>
+            </div>
 
-        {/* Nav */}
-        <div style={{ display: 'flex', justifyContent: step > 0 ? 'space-between' : 'flex-end', marginTop: 24, gap: 12 }}>
-          {step > 0 && <button onClick={() => setStep(s => s - 1)} className="btn-secondary">BACK</button>}
-          {step < 4
-            ? <button onClick={handleContinue} className="btn-primary">CONTINUE</button>
-            : <button onClick={handleSubmit} disabled={!confirmChecked || submitting} className="btn-primary">
-                {submitting ? 'SUBMITTING…' : 'SUBMIT CLAIM'}
-              </button>
-          }
+            {/* Purchase date */}
+            <div>
+              <label className="w-label">Purchase date *</label>
+              <input type="date" className={`w-input${errors.purchaseDate ? ' is-error' : ''}`} max={today} min={fiveYearsAgo} {...register('purchaseDate')} style={{ colorScheme: 'dark' }} />
+              <FieldError message={errors.purchaseDate?.message} />
+              {productType && (
+                <p className="w-helper anim-fade-up">
+                  {productType === 'Swappable Battery' ? '6-month' : '12-month'} warranty starts from your purchase date.
+                </p>
+              )}
+            </div>
+
+            {/* Where purchased */}
+            <div>
+              <label className="w-label">Purchased from *</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 4 }}>
+                {LOCATIONS.map(loc => (
+                  <label key={loc} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                    <input type="radio" value={loc} {...register('purchaseLocation')} style={{ display: 'none' }} />
+                    <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${purchaseLocation === loc ? '#FF8000' : '#2A2A2A'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'border-color 0.15s' }}>
+                      {purchaseLocation === loc && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#FF8000' }} />}
+                    </div>
+                    <span style={{ fontSize: 15, color: '#fff' }}>{loc}</span>
+                  </label>
+                ))}
+              </div>
+              <FieldError message={errors.purchaseLocation?.message} />
+            </div>
+
+            {/* Reseller name — conditional */}
+            {purchaseLocation === 'Authorized reseller' && (
+              <div className="anim-fade-up">
+                <label className="w-label">Reseller name *</label>
+                <input className={`w-input${errors.resellerName ? ' is-error' : ''}`} placeholder="e.g. Smoke House NYC" {...register('resellerName')} />
+                <FieldError message={errors.resellerName?.message} />
+              </div>
+            )}
+
+            {/* Divider */}
+            <div style={{ borderTop: '1px solid #2A2A2A', paddingTop: 8 }}>
+              <p style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#555', marginBottom: 20 }}>YOUR DETAILS</p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div>
+                    <label className="w-label">First name *</label>
+                    <input className={`w-input${errors.firstName ? ' is-error' : ''}`} placeholder="First name" {...register('firstName')} />
+                    <FieldError message={errors.firstName?.message} />
+                  </div>
+                  <div>
+                    <label className="w-label">Last name *</label>
+                    <input className={`w-input${errors.lastName ? ' is-error' : ''}`} placeholder="Last name" {...register('lastName')} />
+                    <FieldError message={errors.lastName?.message} />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="w-label">Email address *</label>
+                  <input type="email" className={`w-input${errors.email ? ' is-error' : ''}`} placeholder="you@example.com" {...register('email')} />
+                  <FieldError message={errors.email?.message} />
+                  <p className="w-helper">Your confirmation and warranty updates will be sent here.</p>
+                </div>
+
+                <div>
+                  <label className="w-label">Phone number <span style={{ color: '#444', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+                  <input type="tel" className={`w-input${errors.phone ? ' is-error' : ''}`} placeholder="+1 (555) 000-0000" {...register('phone')} />
+                  <FieldError message={errors.phone?.message} />
+                </div>
+              </div>
+            </div>
+
+            {submitError && (
+              <div style={{ padding: '14px 16px', borderRadius: 8, background: 'rgba(248,38,41,0.06)', border: '1px solid rgba(248,38,41,0.2)' }}>
+                <p style={{ color: '#fca5a5', fontSize: 14 }}>{submitError}</p>
+              </div>
+            )}
+
+            <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: 4 }}>
+              {submitting ? 'REGISTERING…' : 'ACTIVATE WARRANTY'}
+            </button>
+
+            <p style={{ fontSize: 13, color: '#444', textAlign: 'center' }}>
+              Already registered? <a href="/claim" style={{ color: '#FF8000', textDecoration: 'none' }}>Submit a claim →</a>
+            </p>
+          </form>
         </div>
       </div>
     </main>

@@ -12,6 +12,7 @@
     "@fontsource/orbitron": "^5.2.8",
     "@fontsource/space-grotesk": "^5.2.10",
     "@hookform/resolvers": "^5.2.2",
+    "@supabase/supabase-js": "^2.105.1",
     "next": "16.2.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
