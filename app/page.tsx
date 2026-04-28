@@ -31,7 +31,7 @@ const schema = z.object({
   issue: z.object({
     type: z.string().min(1, 'This field is required.'),
     description: z.string().min(50, 'Add a bit more detail. Minimum 50 characters.').max(1500, 'Description is too long. Maximum 1500 characters.'),
-    attachments: z.array(z.any()).min(1, 'At least one photo or video is required.'),
+    attachments: z.array(z.any()).optional().default([]),
   }),
   purchase: z.object({
     date: z.string().min(1, 'This field is required.'),
