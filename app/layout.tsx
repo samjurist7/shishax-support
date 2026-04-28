@@ -3,7 +3,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'Warranty Claim — ShishaX',
-  description: 'Submit a warranty claim for your VOLTA. Our team reviews every submission within 2 business days.',
+  description: 'Submit a warranty claim for your VOLTA. Our team reviews every submission within 1–3 business days.',
   robots: 'noindex, nofollow',
   icons: {
     icon: [

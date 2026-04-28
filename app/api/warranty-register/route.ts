@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
           <div style="background:#0A0A0A;color:#fff;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:40px 32px;border-radius:12px;">
             <p style="font-size:22px;font-weight:700;letter-spacing:0.1em;color:#FF8000;margin:0 0 32px;">SHISHAX</p>
             <h1 style="font-size:22px;font-weight:700;color:#fff;margin:0 0 12px;text-transform:uppercase;letter-spacing:0.02em;">Registration Received</h1>
-            <p style="color:#888;font-size:15px;line-height:1.6;margin:0 0 24px;">Hi ${firstName}, we've received your warranty registration for your <strong style="color:#fff;">${productType}</strong>. Our team will review it within <strong style="color:#fff;">1–2 business days</strong>.</p>
+            <p style="color:#888;font-size:15px;line-height:1.6;margin:0 0 24px;">Hi ${firstName}, we've received your warranty registration for your <strong style="color:#fff;">${productType}</strong>. Our team will review it within <strong style="color:#fff;">1–3 business days</strong>.</p>
             <div style="background:#111;border:1px solid #2A2A2A;border-radius:10px;padding:24px;margin-bottom:24px;">
               <table style="width:100%;border-collapse:collapse;">
                 <tr><td style="color:#666;font-size:13px;padding:6px 0;width:160px;">Reference number</td><td style="color:#FF8000;font-size:14px;font-weight:700;font-family:monospace;">${referenceNumber}</td></tr>

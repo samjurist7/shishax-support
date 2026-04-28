@@ -35,7 +35,7 @@ function PendingScreen({ email }: { email: string }) {
       </div>
       <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 26, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 12 }}>REGISTRATION RECEIVED</h1>
       <p style={{ color: '#888', fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
-        We've received your warranty registration and our team will review it within <strong style={{ color: '#fff' }}>1–2 business days</strong>.
+        We've received your warranty registration and our team will review it within <strong style={{ color: '#fff' }}>1–3 business days</strong>.
         Once approved, you'll get a confirmation email at <span style={{ color: '#fff' }}>{email}</span> with your registration number.
       </p>
       <div style={{ background: '#111', border: '1px solid #2A2A2A', borderRadius: 12, padding: '20px 24px', marginBottom: 24 }}>

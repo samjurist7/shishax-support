@@ -146,7 +146,7 @@ export default function WarrantyPage() {
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: 40 }}>
           <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 'clamp(24px, 5vw, 36px)', color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 10 }}>WARRANTY CLAIM</h1>
-          <p style={{ color: '#666', fontSize: 15 }}>Submit a claim for your VOLTA in 5 steps. We review every submission within 2 business days.</p>
+          <p style={{ color: '#666', fontSize: 15 }}>Submit a claim for your VOLTA in 5 steps. We review every submission within 1–3 business days.</p>
         </div>
 
         {/* Progress */}
