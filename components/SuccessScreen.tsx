@@ -1,9 +1,7 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
 
-interface Props { referenceNumber: string; email: string }
-
-export default function SuccessScreen({ referenceNumber, email }: Props) {
+export default function SuccessScreen({ referenceNumber, email }: { referenceNumber: string; email: string }) {
   const headingRef = useRef<HTMLHeadingElement>(null)
   const [copied, setCopied] = useState(false)
 
@@ -16,42 +14,32 @@ export default function SuccessScreen({ referenceNumber, email }: Props) {
   }
 
   return (
-    <div className="animate-fade-in text-center max-w-lg mx-auto py-8">
-      {/* Animated checkmark */}
-      <div className="w-20 h-20 mx-auto mb-6 rounded-full flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #FF8000, #F82629)' }}>
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-          <path
-            d="M8 18l7 7 13-13"
-            stroke="white"
-            strokeWidth="3"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeDasharray="100"
-            className="animate-draw"
-          />
+    <div className="anim-fade-up" style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto', padding: '32px 0' }}>
+      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #FF8000, #F82629)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <path d="M7 16l6 6 12-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="anim-draw" />
         </svg>
       </div>
 
-      <h1 ref={headingRef} tabIndex={-1} className="font-display font-bold text-white text-3xl md:text-4xl uppercase tracking-wide mb-4 outline-none">
+      <h1 ref={headingRef} tabIndex={-1} style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 32, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 16, outline: 'none' }}>
         CLAIM SUBMITTED
       </h1>
 
-      <p className="text-brand-gray mb-8 leading-relaxed" style={{ fontSize: 15 }}>
+      <p style={{ color: '#888', fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
         Thanks for reaching out. We've received your warranty claim and our team will review it within 2 business days.
-        You'll get an email at <span className="text-white">{email}</span> when we have an update.
+        You'll get an email at <span style={{ color: '#fff' }}>{email}</span> when we have an update.
       </p>
 
-      {/* Reference number */}
-      <div className="bg-brand-bg-1 border border-brand-border rounded-xl p-6 mb-6">
-        <p className="warranty-label mb-2 text-center">YOUR REFERENCE NUMBER</p>
-        <p className="font-mono text-3xl text-brand-orange tracking-widest mb-4">{referenceNumber}</p>
-        <p className="text-brand-gray text-sm mb-4">Save your reference number in case you need to follow up.</p>
-        <button onClick={copy} className="btn-primary w-full">
+      <div style={{ background: '#111', border: '1px solid #2A2A2A', borderRadius: 12, padding: '28px 32px', marginBottom: 16 }}>
+        <p style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666', marginBottom: 12 }}>YOUR REFERENCE NUMBER</p>
+        <p style={{ fontFamily: 'monospace', fontSize: 28, color: '#FF8000', letterSpacing: '0.1em', marginBottom: 8 }}>{referenceNumber}</p>
+        <p style={{ fontSize: 13, color: '#555', marginBottom: 20 }}>Save your reference number in case you need to follow up.</p>
+        <button onClick={copy} className="btn-primary" style={{ width: '100%' }}>
           {copied ? 'COPIED ✓' : 'COPY REFERENCE NUMBER'}
         </button>
       </div>
 
-      <a href="https://shishax.com" className="btn-secondary block w-full text-center">BACK TO SHISHAX.COM</a>
+      <a href="https://shishax.com" className="btn-secondary" style={{ display: 'block', width: '100%', textAlign: 'center' }}>BACK TO SHISHAX.COM</a>
     </div>
   )
 }

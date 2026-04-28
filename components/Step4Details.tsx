@@ -5,98 +5,90 @@ import 'react-phone-number-input/style.css'
 import FieldError from './FieldError'
 
 const COUNTRIES = [
-  { code: 'US', name: 'United States' }, { code: 'GB', name: 'United Kingdom' },
-  { code: 'ES', name: 'Spain' }, { code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' },
-  { code: 'IT', name: 'Italy' }, { code: 'NL', name: 'Netherlands' }, { code: 'BE', name: 'Belgium' },
-  { code: 'AU', name: 'Australia' }, { code: 'CA', name: 'Canada' }, { code: 'AE', name: 'UAE' },
-  { code: 'SA', name: 'Saudi Arabia' }, { code: 'TR', name: 'Turkey' }, { code: 'PL', name: 'Poland' },
-  { code: 'SE', name: 'Sweden' }, { code: 'NO', name: 'Norway' }, { code: 'CH', name: 'Switzerland' },
-  { code: 'AT', name: 'Austria' }, { code: 'UA', name: 'Ukraine' }, { code: 'OTHER', name: 'Other' },
+  { c: 'US', n: 'United States' }, { c: 'GB', n: 'United Kingdom' }, { c: 'ES', n: 'Spain' },
+  { c: 'DE', n: 'Germany' }, { c: 'FR', n: 'France' }, { c: 'IT', n: 'Italy' },
+  { c: 'NL', n: 'Netherlands' }, { c: 'BE', n: 'Belgium' }, { c: 'AU', n: 'Australia' },
+  { c: 'CA', n: 'Canada' }, { c: 'AE', n: 'UAE' }, { c: 'SA', n: 'Saudi Arabia' },
+  { c: 'TR', n: 'Turkey' }, { c: 'PL', n: 'Poland' }, { c: 'SE', n: 'Sweden' },
+  { c: 'NO', n: 'Norway' }, { c: 'CH', n: 'Switzerland' }, { c: 'AT', n: 'Austria' },
+  { c: 'UA', n: 'Ukraine' }, { c: 'OTHER', n: 'Other' },
 ]
 
 export default function Step4Details() {
   const { register, control, formState: { errors } } = useFormContext()
-  const customerErrors = (errors?.customer as any) || {}
-  const addressErrors = customerErrors?.address || {}
+  const ce = (errors?.customer as any) || {}
+  const ae = ce?.address || {}
 
   return (
-    <div className="animate-slide-in space-y-6">
+    <div className="anim-slide-in" style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div>
-        <p className="text-brand-gray mb-4" style={{ fontSize: 15 }}>How can we reach you?</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <p style={{ color: '#888', fontSize: 15, marginBottom: 16 }}>How can we reach you?</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
           <div>
-            <label className="warranty-label">First name *</label>
-            <input className={`warranty-input ${customerErrors.firstName ? 'error' : ''}`} placeholder="First name" {...register('customer.firstName')} />
-            <FieldError message={customerErrors.firstName?.message} />
+            <label className="w-label">First name *</label>
+            <input className={`w-input${ce.firstName ? ' is-error' : ''}`} placeholder="First name" {...register('customer.firstName')} />
+            <FieldError message={ce.firstName?.message} />
           </div>
           <div>
-            <label className="warranty-label">Last name *</label>
-            <input className={`warranty-input ${customerErrors.lastName ? 'error' : ''}`} placeholder="Last name" {...register('customer.lastName')} />
-            <FieldError message={customerErrors.lastName?.message} />
+            <label className="w-label">Last name *</label>
+            <input className={`w-input${ce.lastName ? ' is-error' : ''}`} placeholder="Last name" {...register('customer.lastName')} />
+            <FieldError message={ce.lastName?.message} />
           </div>
         </div>
       </div>
 
       <div>
-        <label className="warranty-label">Email address *</label>
-        <input type="email" className={`warranty-input ${customerErrors.email ? 'error' : ''}`} placeholder="you@example.com" {...register('customer.email')} />
-        <FieldError message={customerErrors.email?.message} />
+        <label className="w-label">Email address *</label>
+        <input type="email" className={`w-input${ce.email ? ' is-error' : ''}`} placeholder="you@example.com" {...register('customer.email')} />
+        <FieldError message={ce.email?.message} />
       </div>
 
       <div>
-        <label className="warranty-label">Phone number *</label>
-        <Controller
-          name="customer.phone"
-          control={control}
-          render={({ field }) => (
-            <PhoneInput
-              international
-              defaultCountry="US"
-              value={field.value}
-              onChange={field.onChange}
-              className={`warranty-input phone-input-wrapper ${customerErrors.phone ? 'error' : ''}`}
-            />
-          )}
-        />
-        <FieldError message={customerErrors.phone?.message} />
+        <label className="w-label">Phone number *</label>
+        <div className={`w-input${ce.phone ? ' is-error' : ''}`} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 16px' }}>
+          <Controller name="customer.phone" control={control} render={({ field }) => (
+            <PhoneInput international defaultCountry="US" value={field.value} onChange={field.onChange} style={{ flex: 1 }} />
+          )} />
+        </div>
+        <FieldError message={ce.phone?.message} />
       </div>
 
       <div>
-        <p className="text-brand-gray mb-4" style={{ fontSize: 15 }}>Where should we send a replacement if your claim is approved?</p>
+        <p style={{ color: '#888', fontSize: 15, marginBottom: 16 }}>Where should we send a replacement if your claim is approved?</p>
 
-        <div className="space-y-4">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div>
-            <label className="warranty-label">Street address *</label>
-            <input className={`warranty-input ${addressErrors.street ? 'error' : ''}`} placeholder="123 Main Street" {...register('customer.address.street')} />
-            <FieldError message={addressErrors.street?.message} />
+            <label className="w-label">Street address *</label>
+            <input className={`w-input${ae.street ? ' is-error' : ''}`} placeholder="123 Main Street" {...register('customer.address.street')} />
+            <FieldError message={ae.street?.message} />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label className="warranty-label">City *</label>
-              <input className={`warranty-input ${addressErrors.city ? 'error' : ''}`} placeholder="City" {...register('customer.address.city')} />
-              <FieldError message={addressErrors.city?.message} />
+              <label className="w-label">City *</label>
+              <input className={`w-input${ae.city ? ' is-error' : ''}`} placeholder="City" {...register('customer.address.city')} />
+              <FieldError message={ae.city?.message} />
             </div>
             <div>
-              <label className="warranty-label">State / Province / Region *</label>
-              <input className={`warranty-input ${addressErrors.state ? 'error' : ''}`} placeholder="State / Province / Region" {...register('customer.address.state')} />
-              <FieldError message={addressErrors.state?.message} />
+              <label className="w-label">State / Province / Region *</label>
+              <input className={`w-input${ae.state ? ' is-error' : ''}`} placeholder="State / Province" {...register('customer.address.state')} />
+              <FieldError message={ae.state?.message} />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
             <div>
-              <label className="warranty-label">Postal code *</label>
-              <input className={`warranty-input ${addressErrors.postalCode ? 'error' : ''}`} placeholder="Postal code" {...register('customer.address.postalCode')} />
-              <FieldError message={addressErrors.postalCode?.message} />
+              <label className="w-label">Postal code *</label>
+              <input className={`w-input${ae.postalCode ? ' is-error' : ''}`} placeholder="Postal code" {...register('customer.address.postalCode')} />
+              <FieldError message={ae.postalCode?.message} />
             </div>
             <div>
-              <label className="warranty-label">Country *</label>
-              <select className={`warranty-select ${addressErrors.country ? 'error' : ''}`} {...register('customer.address.country')}>
+              <label className="w-label">Country *</label>
+              <select className={`w-select${ae.country ? ' is-error' : ''}`} {...register('customer.address.country')}>
                 <option value="">Select country</option>
-                {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                {COUNTRIES.map(c => <option key={c.c} value={c.c}>{c.n}</option>)}
               </select>
-              <FieldError message={addressErrors.country?.message} />
+              <FieldError message={ae.country?.message} />
             </div>
           </div>
         </div>

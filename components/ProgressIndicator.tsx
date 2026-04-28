@@ -1,56 +1,55 @@
 'use client'
 
-const STEPS = ['PRODUCT', 'ISSUE', 'PURCHASE', 'YOUR DETAILS', 'REVIEW']
+const STEPS = ['PRODUCT', 'ISSUE', 'PURCHASE', 'DETAILS', 'REVIEW']
 
-interface Props { current: number; onGoTo: (step: number) => void }
-
-export default function ProgressIndicator({ current, onGoTo }: Props) {
+export default function ProgressIndicator({ current, onGoTo }: { current: number; onGoTo: (s: number) => void }) {
   return (
-    <div className="w-full mb-8 md:mb-10">
-      <div className="flex items-center justify-between relative">
-        {/* Connector line */}
-        <div className="absolute top-4 left-0 right-0 h-px bg-brand-border z-0" />
-        <div
-          className="absolute top-4 left-0 h-px z-0 transition-all duration-500"
-          style={{ width: `${(current / (STEPS.length - 1)) * 100}%`, background: 'linear-gradient(90deg, #FF8000, #F82629)' }}
-        />
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', position: 'relative' }}>
+        {/* Track line */}
+        <div style={{ position: 'absolute', top: 16, left: 16, right: 16, height: 1, background: '#2A2A2A', zIndex: 0 }} />
+        {/* Fill */}
+        <div style={{ position: 'absolute', top: 16, left: 16, height: 1, zIndex: 0, transition: 'width 0.4s ease', width: `calc(${(current / (STEPS.length - 1)) * 100}% - 32px * ${current / (STEPS.length - 1)})`, background: 'linear-gradient(90deg, #FF8000, #F82629)' }} />
 
         {STEPS.map((label, i) => {
           const done = i < current
           const active = i === current
-          const clickable = i < current
-
           return (
             <button
               key={i}
-              onClick={() => clickable && onGoTo(i)}
-              disabled={!clickable}
+              onClick={() => i < current && onGoTo(i)}
+              disabled={i > current}
               aria-current={active ? 'step' : undefined}
-              className="flex flex-col items-center gap-2 z-10 disabled:cursor-default"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, zIndex: 1, background: 'none', border: 'none', cursor: i < current ? 'pointer' : 'default', padding: 0 }}
             >
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  done
-                    ? 'text-white'
-                    : active
-                    ? 'bg-brand-bg-1 border-2 text-brand-orange'
-                    : 'bg-brand-bg-1 border border-brand-border text-brand-gray'
-                }`}
-                style={done ? { background: 'linear-gradient(135deg, #FF8000, #F82629)' } : active ? { borderColor: '#FF8000' } : {}}
-              >
+              <div style={{
+                width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: done ? 'linear-gradient(135deg, #FF8000, #F82629)' : '#111',
+                border: active ? '2px solid #FF8000' : '1px solid #2A2A2A',
+                transition: 'all 0.25s',
+              }}>
                 {done ? (
-                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2.5 7l3 3 6-6" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                    <path d="M2.5 7l3.5 3.5 5.5-7" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
                 ) : (
-                  <span className="font-display text-[11px]">{i + 1}</span>
+                  <span style={{ fontFamily: 'Orbitron, sans-serif', fontSize: 11, color: active ? '#FF8000' : '#555', fontWeight: 700 }}>{i + 1}</span>
                 )}
               </div>
-              <span className={`font-body text-[10px] tracking-widest uppercase hidden md:block transition-colors ${active ? 'text-white' : done ? 'text-brand-orange' : 'text-brand-gray'}`}>
-                {label}
-              </span>
-              <span className="font-display text-[9px] text-brand-gray md:hidden">{i + 1}</span>
+              <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: active ? '#fff' : done ? '#FF8000' : '#444', display: 'none' }} className="md-label">{label}</span>
             </button>
           )
         })}
+      </div>
+
+      {/* Step labels — desktop */}
+      <style>{`.md-label { display: none; } @media(min-width:640px){.md-label{display:block;}}`}</style>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
+        {STEPS.map((label, i) => (
+          <span key={i} style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: i === current ? '#fff' : i < current ? '#FF8000' : '#444', flex: 1, textAlign: i === 0 ? 'left' : i === STEPS.length - 1 ? 'right' : 'center' }}>
+            {label}
+          </span>
+        ))}
       </div>
     </div>
   )
