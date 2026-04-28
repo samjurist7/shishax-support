@@ -15,6 +15,7 @@ const schema = z.object({
   purchaseDate: z.string().min(1, 'Purchase date is required.'),
   purchaseLocation: z.string().refine(v => LOCATIONS.includes(v as typeof LOCATIONS[number]), { message: 'Please select where you purchased.' }),
   resellerName: z.string().optional(),
+  otherLocation: z.string().optional(),
   firstName: z.string().min(1, 'First name is required.'),
   lastName: z.string().min(1, 'Last name is required.'),
   email: z.string().email('Enter a valid email address.'),
@@ -23,28 +24,26 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-function SuccessScreen({ refNumber, email, product }: { refNumber: string; email: string; product: string }) {
-  const [copied, setCopied] = useState(false)
-  const copy = () => { navigator.clipboard.writeText(refNumber); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-
+function PendingScreen({ email }: { email: string }) {
   return (
     <div className="anim-fade-up" style={{ textAlign: 'center', maxWidth: 520, margin: '0 auto', padding: '16px 0' }}>
-      <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'linear-gradient(135deg, #FF8000, #F82629)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
+      <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#111', border: '2px solid #FF8000', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
         <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-          <path d="M7 16l6 6 12-12" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="anim-draw" />
+          <circle cx="16" cy="16" r="10" stroke="#FF8000" strokeWidth="2"/>
+          <path d="M16 10v7l4 4" stroke="#FF8000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
       </div>
-      <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 28, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 12 }}>WARRANTY REGISTERED</h1>
+      <h1 style={{ fontFamily: 'Orbitron, sans-serif', fontWeight: 700, fontSize: 26, color: '#fff', textTransform: 'uppercase', letterSpacing: '0.03em', marginBottom: 12 }}>REGISTRATION RECEIVED</h1>
       <p style={{ color: '#888', fontSize: 15, lineHeight: 1.7, marginBottom: 32 }}>
-        Your <span style={{ color: '#fff' }}>{product}</span> warranty is now active. A confirmation has been sent to <span style={{ color: '#fff' }}>{email}</span>.
+        We've received your warranty registration and our team will review it within <strong style={{ color: '#fff' }}>1–2 business days</strong>.
+        Once approved, you'll get a confirmation email at <span style={{ color: '#fff' }}>{email}</span> with your registration number.
       </p>
-      <div style={{ background: '#111', border: '1px solid #2A2A2A', borderRadius: 12, padding: '24px 28px', marginBottom: 16 }}>
-        <p style={{ fontFamily: 'Space Grotesk, sans-serif', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#666', marginBottom: 10 }}>REGISTRATION NUMBER</p>
-        <p style={{ fontFamily: 'monospace', fontSize: 24, color: '#FF8000', letterSpacing: '0.1em', marginBottom: 6 }}>{refNumber}</p>
-        <p style={{ fontSize: 13, color: '#555', marginBottom: 18 }}>Save this number. You'll need it if you ever submit a warranty claim.</p>
-        <button onClick={copy} className="btn-primary" style={{ width: '100%' }}>{copied ? 'COPIED ✓' : 'COPY REGISTRATION NUMBER'}</button>
+      <div style={{ background: '#111', border: '1px solid #2A2A2A', borderRadius: 12, padding: '20px 24px', marginBottom: 24 }}>
+        <p style={{ color: '#666', fontSize: 14, lineHeight: 1.6 }}>
+          Questions? Email us at{' '}
+          <a href="mailto:sales@shishax.com" style={{ color: '#FF8000', textDecoration: 'none' }}>sales@shishax.com</a>
+        </p>
       </div>
-      <a href="/claim" className="btn-secondary" style={{ display: 'block', width: '100%', textAlign: 'center', marginBottom: 12 }}>SUBMIT A CLAIM</a>
       <a href="https://shishax.com" style={{ fontSize: 14, color: '#555', textDecoration: 'none' }}>← Back to ShishaX.com</a>
     </div>
   )
@@ -54,7 +53,7 @@ export default function RegisterPage() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
-  const [refNumber, setRefNumber] = useState('')
+  const [submittedEmail, setSubmittedEmail] = useState('')
 
   const today = new Date().toISOString().split('T')[0]
   const fiveYearsAgo = new Date(Date.now() - 5 * 365.25 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
@@ -68,6 +67,11 @@ export default function RegisterPage() {
   const purchaseLocation = watch('purchaseLocation')
 
   const onSubmit = async (data: FormData) => {
+    // Validate "Other" location has a description
+    if (data.purchaseLocation === 'Other' && !data.otherLocation?.trim()) {
+      return
+    }
+
     setSubmitting(true)
     setSubmitError('')
     try {
@@ -78,7 +82,7 @@ export default function RegisterPage() {
       })
       const json = await res.json()
       if (json.success) {
-        setRefNumber(json.referenceNumber)
+        setSubmittedEmail(data.email)
         setSubmitted(true)
       } else {
         setSubmitError(json.error?.message || 'Something went wrong. Please try again.')
@@ -93,7 +97,7 @@ export default function RegisterPage() {
     <main style={{ minHeight: '100vh', padding: '48px 20px' }}>
       <div style={{ maxWidth: 580, margin: '0 auto' }}>
         <SiteNav />
-        <SuccessScreen refNumber={refNumber} email={watch('email')} product={watch('productType')} />
+        <PendingScreen email={submittedEmail} />
       </div>
     </main>
   )
@@ -114,8 +118,8 @@ export default function RegisterPage() {
             {/* Product */}
             <div>
               <label className="w-label">Product *</label>
-              <select className={`w-select${errors.productType ? ' is-error' : ''}`} {...register('productType')}>
-                <option value="">Select your product</option>
+              <select className={`w-select${errors.productType ? ' is-error' : ''}`} {...register('productType')} defaultValue="">
+                <option value="" disabled>Select your product</option>
                 {PRODUCTS.map(p => <option key={p} value={p}>{p}</option>)}
               </select>
               <FieldError message={errors.productType?.message} />
@@ -136,7 +140,7 @@ export default function RegisterPage() {
               <FieldError message={errors.purchaseDate?.message} />
               {productType && (
                 <p className="w-helper anim-fade-up">
-                  {productType === 'Swappable Battery' ? '6-month' : '12-month'} warranty starts from your purchase date.
+                  {productType === 'Swappable Battery' ? '6-month' : '12-month'} warranty from your purchase date.
                 </p>
               )}
             </div>
@@ -158,12 +162,25 @@ export default function RegisterPage() {
               <FieldError message={errors.purchaseLocation?.message} />
             </div>
 
-            {/* Reseller name — conditional */}
+            {/* Reseller name */}
             {purchaseLocation === 'Authorized reseller' && (
               <div className="anim-fade-up">
                 <label className="w-label">Reseller name *</label>
                 <input className={`w-input${errors.resellerName ? ' is-error' : ''}`} placeholder="e.g. Smoke House NYC" {...register('resellerName')} />
                 <FieldError message={errors.resellerName?.message} />
+              </div>
+            )}
+
+            {/* Other location */}
+            {purchaseLocation === 'Other' && (
+              <div className="anim-fade-up">
+                <label className="w-label">Where did you purchase? *</label>
+                <input
+                  className={`w-input${errors.otherLocation ? ' is-error' : ''}`}
+                  placeholder="e.g. Amazon, local shop, gift, etc."
+                  {...register('otherLocation', { required: purchaseLocation === 'Other' ? 'Please tell us where you purchased.' : false })}
+                />
+                <FieldError message={errors.otherLocation?.message} />
               </div>
             )}
 
@@ -189,7 +206,7 @@ export default function RegisterPage() {
                   <label className="w-label">Email address *</label>
                   <input type="email" className={`w-input${errors.email ? ' is-error' : ''}`} placeholder="you@example.com" {...register('email')} />
                   <FieldError message={errors.email?.message} />
-                  <p className="w-helper">Your confirmation and warranty updates will be sent here.</p>
+                  <p className="w-helper">Your confirmation email will be sent here once your registration is approved.</p>
                 </div>
 
                 <div>
@@ -207,7 +224,7 @@ export default function RegisterPage() {
             )}
 
             <button type="submit" disabled={submitting} className="btn-primary" style={{ width: '100%', marginTop: 4 }}>
-              {submitting ? 'REGISTERING…' : 'ACTIVATE WARRANTY'}
+              {submitting ? 'SUBMITTING…' : 'SUBMIT FOR REVIEW'}
             </button>
 
             <p style={{ fontSize: 13, color: '#444', textAlign: 'center' }}>
