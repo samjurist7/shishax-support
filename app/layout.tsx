@@ -2,8 +2,11 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Warranty Claim — ShishaX',
-  description: 'Submit a warranty claim for your VOLTA. Our team reviews every submission within 1–3 business days.',
+  title: {
+    default: 'Register Your Warranty — ShishaX',
+    template: '%s — ShishaX',
+  },
+  description: 'Register your ShishaX VOLTA warranty in under 2 minutes. Activate your coverage and get peace of mind.',
   robots: 'noindex, nofollow',
   icons: {
     icon: [
