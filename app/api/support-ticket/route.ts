@@ -15,6 +15,15 @@ function priorityFromCategory(category: string): string {
   return 'normal'
 }
 
+// Map support portal category → CS ticket category
+function mapCategory(category: string): string {
+  if (category === 'Device / Warranty') return 'Warranty'
+  if (category === 'Returns & Refunds') return 'Returns'
+  if (category === 'Order & Shipping') return 'Order'
+  if (category === 'App Issue') return 'Technical'
+  return 'Other'
+}
+
 async function sendTicketEmails(
   ticketNumber: string,
   data: {
@@ -51,7 +60,7 @@ async function sendTicketEmails(
             </table>
           </div>
           <p style="color:#888;font-size:14px;line-height:1.6;margin:0 0 24px;">We'll reply to this email address. Keep your ticket number for reference.</p>
-          <p style="color:#444;font-size:13px;margin:0;">Questions? Email <a href="mailto:sales@shishax.com" style="color:#FF8000;">sales@shishax.com</a></p>
+          <p style="color:#444;font-size:13px;margin:0;">Questions? Email <a href="mailto:support@shishax.com" style="color:#FF8000;">support@shishax.com</a></p>
         </div>
       `,
     }),
@@ -68,7 +77,7 @@ async function sendTicketEmails(
       html: `
         <div style="font-family:sans-serif;max-width:480px;padding:24px;">
           <h2 style="margin:0 0 8px;">New Support Ticket</h2>
-          <p style="color:#888;font-size:14px;margin:0 0 20px;">Awaiting response.</p>
+          <p style="color:#888;font-size:14px;margin:0 0 20px;">Awaiting response. <a href="https://teamsho.app/cs/shishax">View in TeamSHO →</a></p>
           <table style="border-collapse:collapse;width:100%;margin-bottom:24px;">
             <tr><td style="color:#666;padding:5px 0;width:160px;font-size:13px;">Ticket #</td><td style="font-weight:700;">${ticketNumber}</td></tr>
             <tr><td style="color:#666;padding:5px 0;font-size:13px;">Category</td><td>${category}</td></tr>
@@ -85,6 +94,90 @@ async function sendTicketEmails(
         </div>
       `,
     }),
+  })
+}
+
+// ── Write ticket into TeamSHO (sho-dashboard Supabase) ──────────────────────
+async function syncToTeamSHO(
+  ticketNumber: string,
+  data: {
+    firstName: string; lastName: string; email: string; phone?: string;
+    category: string; deviceSelection?: string; issueSelections?: string[];
+    description: string; serialNumber?: string; orderNumber?: string;
+    attachmentUrls: string[];
+    priority: string;
+  }
+) {
+  const TEAMSHO_URL = process.env.TEAMSHO_SUPABASE_URL
+  const TEAMSHO_KEY = process.env.TEAMSHO_SUPABASE_SERVICE_KEY
+  if (!TEAMSHO_URL || !TEAMSHO_KEY) {
+    console.warn('[SUPPORT TICKET] TEAMSHO env vars not set — skipping TeamSHO sync')
+    return
+  }
+
+  const sho = createClient(TEAMSHO_URL, TEAMSHO_KEY)
+  const now = new Date().toISOString()
+  const ticketId = Date.now() + Math.floor(Math.random() * 1000)
+  const customerName = `${data.firstName} ${data.lastName}`
+  const requesterId = Math.abs(
+    data.email.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
+  ) % 2147483647
+
+  // Upsert requester in cs_users
+  await sho.from('cs_users').upsert(
+    { id: requesterId, name: customerName, email: data.email, synced_at: now },
+    { onConflict: 'id' }
+  )
+
+  // Build subject
+  const subject = data.deviceSelection
+    ? `${data.category} — ${data.deviceSelection}`
+    : data.category
+
+  // Build ticket body
+  const bodyLines = [
+    `**Category:** ${data.category}`,
+    data.deviceSelection ? `**Device:** ${data.deviceSelection}` : null,
+    data.issueSelections?.length ? `**Issues:** ${data.issueSelections.join(', ')}` : null,
+    data.serialNumber ? `**Serial #:** ${data.serialNumber}` : null,
+    data.orderNumber ? `**Order #:** ${data.orderNumber}` : null,
+    data.phone ? `**Phone:** ${data.phone}` : null,
+    ``,
+    data.description,
+    data.attachmentUrls.length ? `\n**Attachments:**\n${data.attachmentUrls.join('\n')}` : null,
+  ].filter(Boolean).join('\n')
+
+  // Insert CS ticket
+  await sho.from('cs_tickets').insert({
+    id: ticketId,
+    subject,
+    status: 'open',
+    priority: data.priority,
+    category: mapCategory(data.category),
+    source: 'web_form',
+    brand: 'shishax',
+    requester_id: requesterId,
+    serial_number: data.serialNumber ?? null,
+    device_type: data.deviceSelection ?? null,
+    issue_type: data.issueSelections?.[0] ?? null,
+    shopify_order_id: data.orderNumber ?? null,
+    tags: ['web-form', ticketNumber],
+    created_at: now,
+    updated_at: now,
+    synced_at: now,
+  })
+
+  // Insert first comment (customer message)
+  await sho.from('cs_comments').insert({
+    id: Date.now() + Math.floor(Math.random() * 10000),
+    ticket_id: ticketId,
+    author_name: customerName,
+    author_email: data.email,
+    body: bodyLines,
+    html_body: `<div>${bodyLines.replace(/\n/g, '<br>')}</div>`,
+    public: true,
+    created_at: now,
+    synced_at: now,
   })
 }
 
@@ -107,6 +200,7 @@ export async function POST(req: NextRequest) {
     }
 
     const ticketNumber = generateTicketNumber()
+    const priority = priorityFromCategory(category)
 
     // Upload attachments
     const attachmentUrls: string[] = []
@@ -126,7 +220,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Insert into support_tickets
+    // 1. Insert into support_tickets (ShishaX own DB — source of truth for the portal)
     const { error: dbError } = await supabase.from('support_tickets').insert({
       ticket_number: ticketNumber,
       category,
@@ -148,7 +242,7 @@ export async function POST(req: NextRequest) {
       email,
       phone: body.phone ?? null,
       status: 'open',
-      priority: priorityFromCategory(category),
+      priority,
     })
 
     if (dbError) {
@@ -156,7 +250,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Failed to save ticket.' }, { status: 500 })
     }
 
-    // Send emails (non-fatal)
+    // 2. Sync into TeamSHO CS inbox (non-fatal)
+    try {
+      await syncToTeamSHO(ticketNumber, {
+        firstName,
+        lastName,
+        email,
+        phone: body.phone,
+        category,
+        deviceSelection: body.deviceSelection,
+        issueSelections: body.issueSelections,
+        description,
+        serialNumber: body.serialNumber,
+        orderNumber: body.orderNumber,
+        attachmentUrls,
+        priority,
+      })
+    } catch (syncErr) {
+      console.error('[SUPPORT TICKET] TeamSHO sync error (non-fatal):', syncErr)
+    }
+
+    // 3. Send emails (non-fatal)
     try {
       await sendTicketEmails(ticketNumber, {
         firstName,

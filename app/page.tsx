@@ -228,7 +228,7 @@ export default function RegisterPage() {
             </button>
 
             <p style={{ fontSize: 13, color: '#444', textAlign: 'center' }}>
-              Already registered? <a href="/claim" style={{ color: '#FF8000', textDecoration: 'none' }}>Submit a claim →</a>
+              Need help? <a href="/ticket" style={{ color: '#FF8000', textDecoration: 'none' }}>Get support →</a>
             </p>
           </form>
         </div>

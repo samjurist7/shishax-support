@@ -7,7 +7,6 @@ export default function SiteNav() {
 
   const tabs = [
     { label: 'Register Warranty', href: '/' },
-    { label: 'Submit a Claim', href: '/claim' },
     { label: 'Get Support', href: '/ticket' },
   ]
 
