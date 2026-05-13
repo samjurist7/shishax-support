@@ -11,11 +11,9 @@ function generateTicketNumber(): string {
 function priorityFromCategory(category: string): string {
   if (category === 'Device / Warranty') return 'high'
   if (category === 'Returns & Refunds') return 'high'
-  if (category === 'Order & Shipping') return 'normal'
   return 'normal'
 }
 
-// Map support portal category → CS ticket category
 function mapCategory(category: string): string {
   if (category === 'Device / Warranty') return 'Warranty'
   if (category === 'Returns & Refunds') return 'Returns'
@@ -41,7 +39,7 @@ async function sendTicketEmails(
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'ShishaX <noreply@shishax.com>',
+      from: 'ShishaX Support <noreply@shishax.com>',
       to: email,
       subject: `Support ticket received — ${ticketNumber}`,
       html: `
@@ -71,7 +69,7 @@ async function sendTicketEmails(
     method: 'POST',
     headers: { 'Authorization': `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'ShishaX <noreply@shishax.com>',
+      from: 'ShishaX Support <noreply@shishax.com>',
       to: 'kristina@shishax.com',
       subject: `New support ticket — ${ticketNumber} — ${category}`,
       html: `
@@ -89,7 +87,7 @@ async function sendTicketEmails(
             <tr><td style="color:#666;padding:5px 0;font-size:13px;">Name</td><td>${firstName} ${data.lastName}</td></tr>
             <tr><td style="color:#666;padding:5px 0;font-size:13px;">Email</td><td>${email}</td></tr>
             ${data.phone ? `<tr><td style="color:#666;padding:5px 0;font-size:13px;">Phone</td><td>${data.phone}</td></tr>` : ''}
-            ${data.hasAttachments ? '<tr><td style="color:#666;padding:5px 0;font-size:13px;">Attachments</td><td>Yes — view in Team SHO</td></tr>' : ''}
+            ${data.hasAttachments ? '<tr><td style="color:#666;padding:5px 0;font-size:13px;">Attachments</td><td>Yes — view in TeamSHO</td></tr>' : ''}
           </table>
         </div>
       `,
@@ -97,101 +95,17 @@ async function sendTicketEmails(
   })
 }
 
-// ── Write ticket into TeamSHO (sho-dashboard Supabase) ──────────────────────
-async function syncToTeamSHO(
-  ticketNumber: string,
-  data: {
-    firstName: string; lastName: string; email: string; phone?: string;
-    category: string; deviceSelection?: string; issueSelections?: string[];
-    description: string; serialNumber?: string; orderNumber?: string;
-    attachmentUrls: string[];
-    priority: string;
-  }
-) {
-  const TEAMSHO_URL = process.env.TEAMSHO_SUPABASE_URL
-  const TEAMSHO_KEY = process.env.TEAMSHO_SUPABASE_SERVICE_KEY
-  if (!TEAMSHO_URL || !TEAMSHO_KEY) {
-    console.warn('[SUPPORT TICKET] TEAMSHO env vars not set — skipping TeamSHO sync')
-    return
-  }
-
-  const sho = createClient(TEAMSHO_URL, TEAMSHO_KEY)
-  const now = new Date().toISOString()
-  const ticketId = Date.now() + Math.floor(Math.random() * 1000)
-  const customerName = `${data.firstName} ${data.lastName}`
-  const requesterId = Math.abs(
-    data.email.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 0)
-  ) % 2147483647
-
-  // Upsert requester in cs_users
-  await sho.from('cs_users').upsert(
-    { id: requesterId, name: customerName, email: data.email, synced_at: now },
-    { onConflict: 'id' }
-  )
-
-  // Build subject
-  const subject = data.deviceSelection
-    ? `${data.category} — ${data.deviceSelection}`
-    : data.category
-
-  // Build ticket body
-  const bodyLines = [
-    `**Category:** ${data.category}`,
-    data.deviceSelection ? `**Device:** ${data.deviceSelection}` : null,
-    data.issueSelections?.length ? `**Issues:** ${data.issueSelections.join(', ')}` : null,
-    data.serialNumber ? `**Serial #:** ${data.serialNumber}` : null,
-    data.orderNumber ? `**Order #:** ${data.orderNumber}` : null,
-    data.phone ? `**Phone:** ${data.phone}` : null,
-    ``,
-    data.description,
-    data.attachmentUrls.length ? `\n**Attachments:**\n${data.attachmentUrls.join('\n')}` : null,
-  ].filter(Boolean).join('\n')
-
-  // Insert CS ticket
-  await sho.from('cs_tickets').insert({
-    id: ticketId,
-    subject,
-    status: 'open',
-    priority: data.priority,
-    category: mapCategory(data.category),
-    source: 'web_form',
-    brand: 'shishax',
-    requester_id: requesterId,
-    serial_number: data.serialNumber ?? null,
-    device_type: data.deviceSelection ?? null,
-    issue_type: data.issueSelections?.[0] ?? null,
-    shopify_order_id: data.orderNumber ?? null,
-    tags: ['web-form', ticketNumber],
-    created_at: now,
-    updated_at: now,
-    synced_at: now,
-  })
-
-  // Insert first comment (customer message)
-  await sho.from('cs_comments').insert({
-    id: Date.now() + Math.floor(Math.random() * 10000),
-    ticket_id: ticketId,
-    author_name: customerName,
-    author_email: data.email,
-    body: bodyLines,
-    html_body: `<div>${bodyLines.replace(/\n/g, '<br>')}</div>`,
-    public: true,
-    created_at: now,
-    synced_at: now,
-  })
-}
-
 export async function POST(req: NextRequest) {
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  // Write directly to TeamSHO (sho-dashboard) Supabase
+  const sho = createClient(
+    process.env.TEAMSHO_SUPABASE_URL!,
+    process.env.TEAMSHO_SUPABASE_SERVICE_KEY!
   )
 
   try {
     const body = await req.json()
-
-    // Basic validation
     const { category, description, firstName, lastName, email } = body
+
     if (!category || !description || !firstName || !lastName || !email) {
       return NextResponse.json({ success: false, error: 'Missing required fields.' }, { status: 400 })
     }
@@ -201,76 +115,75 @@ export async function POST(req: NextRequest) {
 
     const ticketNumber = generateTicketNumber()
     const priority = priorityFromCategory(category)
+    const now = new Date().toISOString()
+    const ticketId = Date.now() + Math.floor(Math.random() * 1000)
+    const customerName = `${firstName} ${lastName}`
+    const requesterId = Math.abs(
+      email.split('').reduce((acc: number, c: string) => acc * 31 + c.charCodeAt(0), 0)
+    ) % 2147483647
 
-    // Upload attachments
-    const attachmentUrls: string[] = []
-    for (const att of body.attachments ?? []) {
-      try {
-        const buffer = Buffer.from(att.data as string, 'base64')
-        const fileName = `${ticketNumber}/${Date.now()}-${att.filename}`
-        const { data: uploadData } = await supabase.storage
-          .from('support-tickets')
-          .upload(fileName, buffer, { contentType: att.mimeType, upsert: false })
-        if (uploadData?.path) {
-          const { data: urlData } = supabase.storage.from('support-tickets').getPublicUrl(uploadData.path)
-          attachmentUrls.push(urlData.publicUrl)
-        }
-      } catch {
-        console.error(`[SUPPORT TICKET] Attachment upload failed for ${att.filename}`)
-      }
-    }
+    // Upsert requester
+    await sho.from('cs_users').upsert(
+      { id: requesterId, name: customerName, email, synced_at: now },
+      { onConflict: 'id' }
+    )
 
-    // 1. Insert into support_tickets (ShishaX own DB — source of truth for the portal)
-    const { error: dbError } = await supabase.from('support_tickets').insert({
-      ticket_number: ticketNumber,
-      category,
-      device_selection: body.deviceSelection ?? null,
-      issue_selections: body.issueSelections?.length ? body.issueSelections : null,
-      single_pill: body.singlePill ?? null,
-      multi_pills: body.multiPills?.length ? body.multiPills : null,
+    // Build subject
+    const subject = body.deviceSelection
+      ? `${category} — ${body.deviceSelection}`
+      : category
+
+    // Build comment body
+    const bodyLines = [
+      `Category: ${category}`,
+      body.deviceSelection ? `Device: ${body.deviceSelection}` : null,
+      body.issueSelections?.length ? `Issues: ${body.issueSelections.join(', ')}` : null,
+      body.serialNumber ? `Serial #: ${body.serialNumber}` : null,
+      body.orderNumber ? `Order #: ${body.orderNumber}` : null,
+      body.phone ? `Phone: ${body.phone}` : null,
+      ``,
       description,
-      serial_number: body.serialNumber ?? null,
-      purchase_date: body.purchaseDate ?? null,
-      purchase_location: body.purchaseLocation ?? null,
-      order_number: body.orderNumber ?? null,
-      app_version: body.appVersion ?? null,
-      os_version: body.osVersion ?? null,
-      has_attachments: attachmentUrls.length > 0,
-      attachment_urls: attachmentUrls.length > 0 ? attachmentUrls : null,
-      first_name: firstName,
-      last_name: lastName,
-      email,
-      phone: body.phone ?? null,
+    ].filter(Boolean).join('\n')
+
+    // Insert CS ticket
+    const { error: ticketErr } = await sho.from('cs_tickets').insert({
+      id: ticketId,
+      subject,
       status: 'open',
       priority,
+      category: mapCategory(category),
+      source: 'web_form',
+      brand: 'shishax',
+      requester_id: requesterId,
+      serial_number: body.serialNumber ?? null,
+      device_type: body.deviceSelection ?? null,
+      issue_type: body.issueSelections?.[0] ?? null,
+      shopify_order_id: body.orderNumber ?? null,
+      tags: ['web-form', ticketNumber],
+      created_at: now,
+      updated_at: now,
+      synced_at: now,
     })
 
-    if (dbError) {
-      console.error('[SUPPORT TICKET] DB error:', dbError)
+    if (ticketErr) {
+      console.error('[SUPPORT TICKET] TeamSHO ticket insert error:', ticketErr)
       return NextResponse.json({ success: false, error: 'Failed to save ticket.' }, { status: 500 })
     }
 
-    // 2. Sync into TeamSHO CS inbox (non-fatal)
-    try {
-      await syncToTeamSHO(ticketNumber, {
-        firstName,
-        lastName,
-        email,
-        phone: body.phone,
-        category,
-        deviceSelection: body.deviceSelection,
-        issueSelections: body.issueSelections,
-        description,
-        serialNumber: body.serialNumber,
-        orderNumber: body.orderNumber,
-        attachmentUrls,
-        priority,
-      })
-    } catch (syncErr) {
-      console.error('[SUPPORT TICKET] TeamSHO sync error (non-fatal):', syncErr)
-    }
+    // Insert first comment
+    await sho.from('cs_comments').insert({
+      id: Date.now() + Math.floor(Math.random() * 10000),
+      ticket_id: ticketId,
+      author_name: customerName,
+      author_email: email,
+      body: bodyLines,
+      html_body: `<div>${bodyLines.replace(/\n/g, '<br>')}</div>`,
+      public: true,
+      created_at: now,
+      synced_at: now,
+    })
 
-    // 3. Send emails (non-fatal)
+    // Send emails (non-fatal)
     try {
       await sendTicketEmails(ticketNumber, {
         firstName,
@@ -283,7 +196,7 @@ export async function POST(req: NextRequest) {
         description,
         serialNumber: body.serialNumber,
         orderNumber: body.orderNumber,
-        hasAttachments: attachmentUrls.length > 0,
+        hasAttachments: false,
       })
     } catch (emailErr) {
       console.error('[SUPPORT TICKET] Email error (non-fatal):', emailErr)
