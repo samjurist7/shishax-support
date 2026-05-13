@@ -97,10 +97,9 @@ async function sendTicketEmails(
 
 export async function POST(req: NextRequest) {
   // Write directly to TeamSHO (sho-dashboard) Supabase
-  const sho = createClient(
-    process.env.TEAMSHO_SUPABASE_URL!,
-    process.env.TEAMSHO_SUPABASE_SERVICE_KEY!
-  )
+  const TEAMSHO_URL = process.env.TEAMSHO_SUPABASE_URL ?? 'https://mcrqfavucthxfuabbmhq.supabase.co'
+  const TEAMSHO_KEY = process.env.TEAMSHO_SUPABASE_SERVICE_KEY ?? 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jcnFmYXZ1Y3RoeGZ1YWJibWhxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MjYzNTM5NSwiZXhwIjoyMDg4MjExMzk1fQ.AzB05kJoR0cAeHhY-LSao9FCCBSgkKOmqEQdBJtq6P4'
+  const sho = createClient(TEAMSHO_URL, TEAMSHO_KEY)
 
   try {
     const body = await req.json()
